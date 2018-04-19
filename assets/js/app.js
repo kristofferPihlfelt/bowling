@@ -1,12 +1,13 @@
 class Bowling {
     constructor() {
         this.allRolls = [];
-        this.roll = 0;
-        this.frame = 0;
+        this.rollIndex = 0;
     }
 
-    throw (skittles) {
-        // logic for each roll/throw, should take number of downed skittles
+    currentRoll(skittles) {
+        this.skittles = skittles;
+        this.allRolls[this.rollIndex] = this.skittles;
+        this.rollIndex++;
     }
 
     strike() {
@@ -36,18 +37,62 @@ class Bowling {
     }
 
 }
-
+/*
+ *  Generates a random number
+ *  takes the remainder from first roll for a correct generated number the second roll
+ */
 class GenerateNumber {
 
-    randomize(remainder = 0) {
-        // should return a random number, 
-        // takes the remainder from the first throw so that no more than 10 skittles can be downed each frame
+    randomize(remainder) {
+        this.remainder = remainder;
+
+        if (this.remainder > 0) {
+            this.number = Math.floor(Math.random() * Math.floor(this.remainder + 1)); // second roll
+        } else {
+            this.number = Math.floor(Math.random() * 11); // first roll
+        }
+        return this.number;
     }
 }
 
-window.onload = function() {
+$(document).ready(function() {
+    // Vars
+    var generate = new GenerateNumber();
+    var remainder = 0;
+    var firstRoll = true;
+    var bowl = new Bowling();
 
-    var rollBtn = document.getElementById("roll-btn");
-    rollBtn.onclick = function() { console.log('button does work') };
+    // Roll
+    $('#roll-btn').click(function() {
 
-}
+        /* 
+         * check if first roll in frame and get random number from 0-10 
+         * change the remainder of skittles for a correct random generated number the second roll
+         */
+        if (firstRoll == true) {
+            let skittles = generate.randomize(remainder);
+            bowl.currentRoll(skittles); // store first roll
+
+            remainder = 10 - skittles;
+            firstRoll = false;
+            console.log(' the first roll you downed ' + skittles + ' skittles and has ' + remainder + ' skittles left');
+        } else {
+            let skittles = generate.randomize(remainder);
+            bowl.currentRoll(skittles); // store second roll
+
+            firstRoll = true;
+            console.log(' the second roll you downed ' + skittles + ' skittles of the remaining ' + remainder + ' skittles. ' + (remainder - skittles) + ' still stands');
+            remainder = 0;
+        }
+
+        // unfinished check if the game is over and it is time to calculate scores
+        if (bowl.allRolls[20]) {
+            $(this).hide();
+            console.log('game over');
+
+            // call some function to calculate scores here...
+        }
+
+        console.log(bowl.allRolls);
+    });
+});
