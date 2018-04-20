@@ -1,3 +1,8 @@
+/* 
+ * the games score object
+ * stores each roll and calculates the score
+ * handles logic for calculating regular rolls, strikes, spares and their bonuses
+ */
 class Bowling {
     constructor() {
         this.allRolls = [];
@@ -10,32 +15,54 @@ class Bowling {
         this.rollIndex++;
     }
 
-    strike() {
-        // return true or false
+    strike(index) {
+        if (this.allRolls[index] == 10) {
+            return this.allRolls[index]
+        }
+        return false
     }
 
-    strikeBonus() {
-        // if strike, there should be a bonus from next two rolls
-        // get the two next rolls as bonus from allRolls by the next frame index
+    strikeBonus(index) {
+        return this.allRolls[index + 1] + this.allRolls[index + 2];
     }
 
-    spare() {
-        // return true or false
+    spare(index) {
+        if (this.allRolls[index] + this.allRolls[index + 1] == 10) {
+            return this.allRolls[index] + this.allRolls[index + 1]
+        }
+        return false
     }
 
-    spareBonus() {
-        // if spare, there should be a bonus from next roll
-        // get the next roll as bonus from allRolls by the next frame index
+    spareBonus(index) {
+        return this.allRolls[index + 2];
     }
 
-    isLastFrame() {
-        // if this is the last frame there should be different logic
+    regularScore(index) {
+        return this.allRolls[index] + this.allRolls[index + 1];
     }
 
     score() {
-        // keep track of scores by frame index and allRolls
-    }
+        var allRolls = this.allRolls;
+        var totalScore = 0;
+        var index = 0;
 
+        for (var frame = 0; frame < 10; frame++) {
+
+            if (this.strike(index)) {
+                totalScore += this.strike(index) + this.strikeBonus(index);
+                index++;
+            } else if (this.spare(index)) {
+                totalScore += this.spare(index) + this.spareBonus(index);
+                index += 2;
+            } else {
+                totalScore += this.regularScore(index);
+                index += 2;
+            }
+            console.log(totalScore);
+        }
+
+        return totalScore;
+    }
 }
 /*
  *  Generates a random number
@@ -55,44 +82,78 @@ class GenerateNumber {
     }
 }
 
-$(document).ready(function() {
-    // Vars
-    var generate = new GenerateNumber();
-    var remainder = 0;
-    var firstRoll = true;
-    var bowl = new Bowling();
+/* 
+ * simple controller object for rolls logic and game control
+ */
+class RollsController {
+    constructor() {
+        this.bowl = new Bowling();
+        this.generate = new GenerateNumber();
+        this.remainder = 0;
+        this.firstRoll = true;
+    }
 
-    // Roll
-    $('#roll-btn').click(function() {
+    roll() {
+        console.log(this.bowl.allRolls)
+
+        /* 
+         * check if last 2 rolls doesnt get spare or strike, game over if not
+         * if spare or strike, continue and then game over
+         */
+        if (this.bowl.allRolls.length >= 18 && (this.bowl.allRolls[18] + this.bowl.allRolls[19] < 10)) {
+
+            $('#roll-btn').hide();
+            console.log('game over');
+            console.log('Your total score is ' + this.bowl.score())
+
+        } else if (this.bowl.allRolls.length > 20) {
+
+            $('#roll-btn').hide();
+            console.log('game over');
+            console.log('Your total score is ' + this.bowl.score())
+        }
 
         /* 
          * check if first roll in frame and get random number from 0-10 
          * change the remainder of skittles for a correct random generated number the second roll
+         * if roll is strike it resets so next roll also counts as first roll
          */
-        if (firstRoll == true) {
-            let skittles = generate.randomize(remainder);
-            bowl.currentRoll(skittles); // store first roll
+        if (this.firstRoll) {
+            let skittles = this.generate.randomize(this.remainder);
+            console.log('remainder is => ' + this.remainder + ' skittles => ' + skittles);
+            this.bowl.currentRoll(skittles); // store first roll
+            this.remainder = 10 - skittles;
+            console.log('remainder is now => ' + this.remainder);
+            console.log()
 
-            remainder = 10 - skittles;
-            firstRoll = false;
-            console.log(' the first roll you downed ' + skittles + ' skittles and has ' + remainder + ' skittles left');
+            // if strike, make sure to reset the roll
+            if (skittles !== 10) {
+                this.firstRoll = false;
+            }
+
+            console.log(' the first roll you downed ' + skittles + ' skittles and has ' + this.remainder + ' skittles left');
+
         } else {
-            let skittles = generate.randomize(remainder);
-            bowl.currentRoll(skittles); // store second roll
-
-            firstRoll = true;
-            console.log(' the second roll you downed ' + skittles + ' skittles of the remaining ' + remainder + ' skittles. ' + (remainder - skittles) + ' still stands');
-            remainder = 0;
+            let skittles = this.generate.randomize(this.remainder);
+            console.log('remainder is => ' + this.remainder + ' skittles => ' + skittles);
+            this.bowl.currentRoll(skittles); // store second roll
+            this.firstRoll = true; // lets start over next roll
+            console.log(' the second roll you downed ' + skittles + ' skittles of the remaining ' + this.remainder + ' skittles. ' + (this.remainder - skittles) + ' still stands');
+            this.remainder = 0;
+            console.log('remainder is now => ' + this.remainder);
         }
+    }
+}
 
-        // unfinished check if the game is over and it is time to calculate scores
-        if (bowl.allRolls[20]) {
-            $(this).hide();
-            console.log('game over');
+$(document).ready(function() {
 
-            // call some function to calculate scores here...
-        }
+    // ready?
+    var rollControll = new RollsController();
 
-        console.log(bowl.allRolls);
+    // lets roll
+    $('#roll-btn').click(function() {
+
+        rollControll.roll();
+
     });
 });
