@@ -7,12 +7,19 @@ class Bowling {
     constructor() {
         this.allRolls = [];
         this.rollIndex = 0;
+        this.viewIndex = 0; // the view <td> index
     }
 
     currentRoll(skittles) {
+        console.log('rollIndex => ' + this.rollIndex);
+        console.log('viewIndex => ' + this.viewIndex);
+
         this.skittles = skittles;
         this.allRolls[this.rollIndex] = this.skittles;
+        this.output(this.rollIndex); // output roll the correct way
         this.rollIndex++;
+        console.log('all rolls => ' + this.allRolls);
+
     }
 
     strike(index) {
@@ -58,12 +65,83 @@ class Bowling {
                 totalScore += this.regularScore(index);
                 index += 2;
             }
-            console.log(totalScore);
         }
 
         return totalScore;
     }
+
+    /*
+     *  Below is logic for how to output roll to the view
+     *  Uses viewIndex instead of rollIndex since they may differ
+     *  may need some refactoring and should be in a new/other class
+     */
+    output(index) {
+        if (this.isOutputStrike(index)) {
+            this.outputStrike();
+            if (this.viewIndex > 17) {
+                this.viewIndex++;
+            } else {
+                this.viewIndex += 2;
+            }
+        } else if (this.isOutputSpare(index)) {
+            this.outputSpare();
+            this.viewIndex++;
+        } else {
+            this.outputRegular(index);
+            this.viewIndex++;
+        }
+    }
+
+    isOutputStrike(index) {
+        let viewIndex = this.viewIndex;
+        if (isEven(viewIndex) && this.allRolls[index] == 10) {
+            return true
+        }
+
+        function isEven(viewIndex) {
+            return viewIndex % 2 == 0;
+        }
+    }
+
+    outputStrike() {
+        if (this.viewIndex < 18) {
+            $('.rolls').eq(this.viewIndex).html('X');
+            this.outputNone(this.viewIndex + 1); // skip past next view index
+        } else {
+            $('.rolls').eq(this.viewIndex).html('X'); // dont skip next view index if last frame
+        }
+    }
+
+    isOutputSpare(index) {
+        if (!isEven(this.viewIndex) && (this.allRolls[index] + this.allRolls[index - 1] == 10)) {
+            return true
+        }
+
+        // check if first or second roll in view by the <td> index (viewindex)
+        function isEven(viewIndex) {
+            return viewIndex % 2 == 0;
+        }
+    }
+
+    outputSpare() {
+        $('.rolls').eq(this.viewIndex).text('/');
+    }
+
+    outputRegular(index) {
+        $('.rolls').eq(this.viewIndex).html(this.allRolls[index]);
+
+    }
+
+    outputNone(index) {
+        let viewIndex = index;
+        $('.rolls').eq(viewIndex).html('-');
+    }
+
+    getViewIndex() {
+        return this.viewIndex;
+    }
 }
+
 /*
  *  Generates a random number
  *  takes the remainder from first roll for a correct generated number the second roll
@@ -93,54 +171,47 @@ class RollsController {
         this.firstRoll = true;
     }
 
+    /* 
+     * check if first roll in frame and get random number from 0-10 
+     * change the remainder of skittles for a correct random generated number the second roll
+     * if roll is strike it resets so next roll also counts as first roll
+     */
     roll() {
-        console.log(this.bowl.allRolls)
 
-        /* 
-         * check if last 2 rolls doesnt get spare or strike, game over if not
-         * if spare or strike, continue and then game over
-         */
-        if (this.bowl.allRolls.length >= 18 && (this.bowl.allRolls[18] + this.bowl.allRolls[19] < 10)) {
-
-            $('#roll-btn').hide();
-            console.log('game over');
-            console.log('Your total score is ' + this.bowl.score())
-
-        } else if (this.bowl.allRolls.length > 20) {
-
-            $('#roll-btn').hide();
-            console.log('game over');
-            console.log('Your total score is ' + this.bowl.score())
-        }
-
-        /* 
-         * check if first roll in frame and get random number from 0-10 
-         * change the remainder of skittles for a correct random generated number the second roll
-         * if roll is strike it resets so next roll also counts as first roll
-         */
         if (this.firstRoll) {
             let skittles = this.generate.randomize(this.remainder);
-            console.log('remainder is => ' + this.remainder + ' skittles => ' + skittles);
-            this.bowl.currentRoll(skittles); // store first roll
+            this.bowl.currentRoll(skittles);
             this.remainder = 10 - skittles;
-            console.log('remainder is now => ' + this.remainder);
-            console.log()
 
             // if strike, make sure to reset the roll
             if (skittles !== 10) {
                 this.firstRoll = false;
             }
 
-            console.log(' the first roll you downed ' + skittles + ' skittles and has ' + this.remainder + ' skittles left');
-
         } else {
             let skittles = this.generate.randomize(this.remainder);
-            console.log('remainder is => ' + this.remainder + ' skittles => ' + skittles);
-            this.bowl.currentRoll(skittles); // store second roll
+            this.bowl.currentRoll(skittles);
             this.firstRoll = true; // lets start over next roll
-            console.log(' the second roll you downed ' + skittles + ' skittles of the remaining ' + this.remainder + ' skittles. ' + (this.remainder - skittles) + ' still stands');
             this.remainder = 0;
-            console.log('remainder is now => ' + this.remainder);
+        }
+
+        /* 
+         * check if last 2 rolls in last frame doesnt get spare or strike, game over if not
+         * if spare or strike, continue one more roll and then game over
+         */
+        if (this.bowl.getViewIndex() == 20) {
+            // check sum of the two previous rolls
+            if (this.bowl.allRolls[this.bowl.rollIndex - 2] + this.bowl.allRolls[this.bowl.rollIndex - 1] < 10) {
+                $('#roll-btn').hide();
+                this.bowl.outputNone(this.bowl.getViewIndex())
+                console.log('Game Over');
+                console.log('Total score was => ' + this.bowl.score());
+
+            }
+        } else if (this.bowl.getViewIndex() > 20) {
+            $('#roll-btn').hide();
+            console.log('Game Over');
+            console.log('Total score was => ' + this.bowl.score());
         }
     }
 }
