@@ -8,18 +8,14 @@ class Bowling {
         this.allRolls = [];
         this.rollIndex = 0;
         this.viewIndex = 0; // the view <td> index
+        this.frameScores = [];
     }
 
     currentRoll(skittles) {
-        console.log('rollIndex => ' + this.rollIndex);
-        console.log('viewIndex => ' + this.viewIndex);
-
         this.skittles = skittles;
         this.allRolls[this.rollIndex] = this.skittles;
         this.output(this.rollIndex); // output roll the correct way
         this.rollIndex++;
-        console.log('all rolls => ' + this.allRolls);
-
     }
 
     strike(index) {
@@ -51,7 +47,7 @@ class Bowling {
     score() {
         var allRolls = this.allRolls;
         var totalScore = 0;
-        var index = 0;
+        var index = 0;;
 
         for (var frame = 0; frame < 10; frame++) {
 
@@ -65,13 +61,19 @@ class Bowling {
                 totalScore += this.regularScore(index);
                 index += 2;
             }
+
+            // add scores to array if correct number
+            if (!isNaN(totalScore)) {
+                this.frameScores[frame] = totalScore;
+            }
         }
 
+        this.outputScore();
         return totalScore;
     }
 
     /*
-     *  Below is logic for how to output roll to the view
+     *  Below is logic for how to output roll and scores to the view
      *  Uses viewIndex instead of rollIndex since they may differ
      *  may need some refactoring and should be in a new/other class
      */
@@ -137,6 +139,12 @@ class Bowling {
         $('.rolls').eq(viewIndex).html('-');
     }
 
+    outputScore() {
+        for (var i = 0, len = this.frameScores.length; i < len; i++) {
+            $('.score').eq(i).html(this.frameScores[i]);
+        }
+    }
+
     getViewIndex() {
         return this.viewIndex;
     }
@@ -195,6 +203,9 @@ class RollsController {
             this.remainder = 0;
         }
 
+        // Output the scores for each frame to view
+        this.bowl.score();
+
         /* 
          * check if last 2 rolls in last frame doesnt get spare or strike, game over if not
          * if spare or strike, continue one more roll and then game over
@@ -205,14 +216,20 @@ class RollsController {
                 $('#roll-btn').hide();
                 this.bowl.outputNone(this.bowl.getViewIndex())
                 console.log('Game Over');
-                console.log('Total score was => ' + this.bowl.score());
-
+                this.gameOver();
             }
         } else if (this.bowl.getViewIndex() > 20) {
             $('#roll-btn').hide();
             console.log('Game Over');
-            console.log('Total score was => ' + this.bowl.score());
+            this.gameOver();
         }
+    }
+
+    // output when game is over
+    gameOver() {
+        console.log('Total score was => ' + this.bowl.score());
+        $('#total-score').html('Total score: <h3>' + this.bowl.score() + '</h3>');
+        $('#play-btn').html("<input type='button' class='btn btn-success' value='Play again' onClick='window.location.reload()'>");
     }
 }
 
