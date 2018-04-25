@@ -7,14 +7,14 @@ class Bowling {
     constructor() {
         this.allRolls = [];
         this.rollIndex = 0;
-        this.viewIndex = 0; // the view <td> index
         this.frameScores = [];
+        this.view = new Output(this.allRolls, this.frameScores); // handle the output to view
     }
 
     currentRoll(skittles) {
         this.skittles = skittles;
         this.allRolls[this.rollIndex] = this.skittles;
-        this.output(this.rollIndex); // output roll the correct way
+        this.view.output(this.rollIndex); // output roll to the view
         this.rollIndex++;
     }
 
@@ -68,8 +68,16 @@ class Bowling {
             }
         }
 
-        this.outputScore();
+        this.view.outputScore();
         return totalScore;
+    }
+}
+
+class Output {
+    constructor(allRolls, frameScores) {
+        this.viewIndex = 0; // the view <td> index
+        this.frameScores = frameScores;
+        this.allRolls = allRolls;
     }
 
     /*
@@ -95,13 +103,9 @@ class Bowling {
     }
 
     isOutputStrike(index) {
-        let viewIndex = this.viewIndex;
-        if (isEven(viewIndex) && this.allRolls[index] == 10) {
+        // output strike even if second last roll is uneven
+        if ((this.getViewIndex() == 19 || this.isEven(this.viewIndex)) && this.allRolls[index] == 10) {
             return true
-        }
-
-        function isEven(viewIndex) {
-            return viewIndex % 2 == 0;
         }
     }
 
@@ -115,13 +119,9 @@ class Bowling {
     }
 
     isOutputSpare(index) {
-        if (!isEven(this.viewIndex) && (this.allRolls[index] + this.allRolls[index - 1] == 10)) {
+        // dont output spare if second last roll
+        if (this.getViewIndex() !== 19 && !this.isEven(this.viewIndex) && (this.allRolls[index] + this.allRolls[index - 1] == 10)) {
             return true
-        }
-
-        // check if first or second roll in view by the <td> index (viewindex)
-        function isEven(viewIndex) {
-            return viewIndex % 2 == 0;
         }
     }
 
@@ -135,8 +135,7 @@ class Bowling {
     }
 
     outputNone(index) {
-        let viewIndex = index;
-        $('.rolls').eq(viewIndex).html('-');
+        $('.rolls').eq(index).html('-');
     }
 
     outputScore() {
@@ -147,6 +146,11 @@ class Bowling {
 
     getViewIndex() {
         return this.viewIndex;
+    }
+
+    // check if first or second roll in view by the <td> index (viewindex)
+    isEven(index) {
+        return index % 2 == 0;
     }
 }
 
@@ -210,15 +214,15 @@ class RollsController {
          * check if last 2 rolls in last frame doesnt get spare or strike, game over if not
          * if spare or strike, continue one more roll and then game over
          */
-        if (this.bowl.getViewIndex() == 20) {
+        if (this.bowl.view.getViewIndex() == 20) {
             // check sum of the two previous rolls
             if (this.bowl.allRolls[this.bowl.rollIndex - 2] + this.bowl.allRolls[this.bowl.rollIndex - 1] < 10) {
                 $('#roll-btn').hide();
-                this.bowl.outputNone(this.bowl.getViewIndex())
+                this.bowl.view.outputNone(this.bowl.view.getViewIndex())
                 console.log('Game Over');
                 this.gameOver();
             }
-        } else if (this.bowl.getViewIndex() > 20) {
+        } else if (this.bowl.view.getViewIndex() > 20) {
             $('#roll-btn').hide();
             console.log('Game Over');
             this.gameOver();
